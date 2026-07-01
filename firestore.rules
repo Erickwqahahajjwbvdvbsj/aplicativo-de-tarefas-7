@@ -1,0 +1,110 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\\\-]+$');
+    }
+
+    // Validation for User
+    function isValidUser(data) {
+      return data.keys().hasAll(['ownerId'])
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && ( !('name' in data) || (data.name is string && data.name.size() <= 100) )
+        && ( !('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 500) )
+        && ( !('geminiApiKey' in data) || (data.geminiApiKey is string && data.geminiApiKey.size() <= 200) )
+        && ( !('updatedAt' in data) || data.updatedAt == request.time );
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && existing().ownerId == request.auth.uid;
+      // Allow read even if document does not exist yet (get returns null)
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() 
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && isValidUser(incoming());
+      allow update: if isSignedIn()
+        && isValidId(userId)
+        && existing().ownerId == request.auth.uid
+        && isValidUser(incoming())
+        && incoming().ownerId == existing().ownerId;
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    // Validation for Task
+    function isValidTask(data) {
+      return data.keys().hasAll(['title', 'ownerId'])
+        && data.title is string && data.title.size() <= 200
+        && data.ownerId is string && data.ownerId == request.auth.uid
+        && ( !('description' in data) || (data.description is string && data.description.size() <= 1000) )
+        && ( !('startTime' in data) || (data.startTime is string && data.startTime.size() <= 50) )
+        && ( !('duration' in data) || data.duration is number )
+        && ( !('priority' in data) || (data.priority is string && data.priority.size() <= 20 && data.priority in ['Baixa', 'Média', 'Alta']) )
+        && ( !('category' in data) || (data.category is string && data.category.size() <= 50) )
+        && ( !('date' in data) || (data.date is string && data.date.size() <= 50) )
+        && ( !('effort' in data) || (data.effort is string && data.effort.size() <= 50) )
+        && ( !('location' in data) || (data.location is string && data.location.size() <= 100) )
+        && ( !('subtasks' in data) || (data.subtasks is list && data.subtasks.size() <= 50) )
+        && ( !('style' in data) || (data.style is string && data.style.size() <= 50) )
+        && ( !('completed' in data) || data.completed is bool )
+        && ( !('completedAt' in data) || (data.completedAt is string && data.completedAt.size() <= 50) )
+        && ( !('createdAt' in data) || data.createdAt == request.time )
+        && ( !('endTime' in data) || (data.endTime is string && data.endTime.size() <= 50) )
+        && ( !('durationStr' in data) || (data.durationStr is string && data.durationStr.size() <= 50) );
+    }
+
+    match /tasks/{taskId} {
+      allow get: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && isValidId(taskId)
+        && isValidTask(incoming());
+      allow update: if isSignedIn()
+        && isValidId(taskId)
+        && existing().ownerId == request.auth.uid
+        && isValidTask(incoming())
+        && incoming().ownerId == existing().ownerId;
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+
+    // Validation for Notification
+    function isValidNotification(data) {
+      return data.keys().hasAll(['ownerId'])
+        && data.ownerId is string && data.ownerId == request.auth.uid;
+    }
+
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && existing().ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn()
+        && isValidId(notificationId)
+        && isValidNotification(incoming());
+      allow update: if isSignedIn()
+        && isValidId(notificationId)
+        && existing().ownerId == request.auth.uid
+        && isValidNotification(incoming())
+        && incoming().ownerId == existing().ownerId;
+      allow delete: if isSignedIn() && existing().ownerId == request.auth.uid;
+    }
+  }
+}

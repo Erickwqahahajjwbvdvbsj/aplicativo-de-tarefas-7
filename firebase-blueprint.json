@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "Task": {
+      "title": "Task",
+      "description": "A user's task",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "startTime": { "type": "string" },
+        "duration": { "type": "number" },
+        "priority": { "type": "string", "enum": ["Baixa", "Média", "Alta"] },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "effort": { "type": "string" },
+        "location": { "type": "string" },
+        "subtasks": { "type": "array" },
+        "style": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "completedAt": { "type": "string" },
+        "createdAt": { "type": "object" },
+        "endTime": { "type": "string" },
+        "durationStr": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["title", "ownerId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "geminiApiKey": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "updatedAt": { "type": "object" }
+      },
+      "required": ["ownerId"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "User notification",
+      "type": "object",
+      "properties": {
+        "ownerId": { "type": "string" }
+      },
+      "required": ["ownerId"]
+    }
+  },
+  "firestore": {
+    "tasks/{taskId}": {
+      "schema": { "$ref": "Task" },
+      "description": "Stores user tasks"
+    },
+    "users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Stores user profiles"
+    },
+    "notifications/{notificationId}": {
+      "schema": { "$ref": "Notification" },
+      "description": "Stores user notifications"
+    }
+  }
+}
